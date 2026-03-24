@@ -228,7 +228,7 @@ def plot_mst(
     for u, v in edges:
         a = instance.nodes[u]
         b = instance.nodes[v]
-        ax.plot([a.x, b.x], [a.y, b.y], linewidth=1.5)
+        ax.plot([a.x, b.x], [a.y, b.y], linewidth=1.5, color="red")
 
     xs = [node.x for node in instance.nodes]
     ys = [node.y for node in instance.nodes]
@@ -263,13 +263,13 @@ def plot_mst_with_dfs_cycle(
     for u, v in edges:
         a = instance.nodes[u]
         b = instance.nodes[v]
-        ax.plot([a.x, b.x], [a.y, b.y], linewidth=1.0, alpha=0.35)
+        ax.plot([a.x, b.x], [a.y, b.y], linewidth=1.0, alpha=0.5, color="red")
 
     cycle = closed_cycle(dfs_order)
     for i in range(len(cycle) - 1):
         a = instance.nodes[cycle[i]]
         b = instance.nodes[cycle[i + 1]]
-        ax.plot([a.x, b.x], [a.y, b.y], linewidth=2.0)
+        ax.plot([a.x, b.x], [a.y, b.y], linewidth=2.0, color="blue")
 
     xs = [node.x for node in instance.nodes]
     ys = [node.y for node in instance.nodes]

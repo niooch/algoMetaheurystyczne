@@ -1,2 +1,8 @@
 lab0/data/*
 lab0/build/*
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.aux
+*.fdb_latexmk

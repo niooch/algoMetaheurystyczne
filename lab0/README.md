@@ -126,9 +126,9 @@ The first vertex is repeated at the end of each saved tour so the cycle is alrea
 
 ## Notes for the report
 
-The lab asks for a short report describing the results for each dataset and suggests thinking about easy geometric improvements in Euclidean TSP, including whether edges may cross in an optimal cycle. fileciteturn1file1
+The lab asks for a short report describing the results for each dataset and suggests thinking about easy geometric improvements in Euclidean TSP, including whether edges may cross in an optimal cycle. 
 
-This code does not perform such local improvements automatically; it generates the random-tour baseline and the MST-based 2-approximation style construction requested in the assignment. The lab sheet also notes that the DFS tour built from the MST should be no more than twice the MST cost. fileciteturn1file1
+This code does not perform such local improvements automatically; it generates the random-tour baseline and the MST-based 2-approximation style construction requested in the assignment. The lab sheet also notes that the DFS tour built from the MST should be no more than twice the MST cost. 
 
 ## Clean build files
 
