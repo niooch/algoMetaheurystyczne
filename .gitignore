@@ -6,3 +6,5 @@ lab0/build/*
 *.synctex.gz
 *.aux
 *.fdb_latexmk
+lab1/data/*
+lab1/build/*
