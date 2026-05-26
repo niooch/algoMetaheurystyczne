@@ -1,0 +1,11 @@
+Podsumowanie wyników Tabu Search
+========================================
+Liczba prób: 10
+Najlepszy koszt: 2785940.0000
+Średni koszt: 2798113.0000
+Najgorszy koszt: 2815180.0000
+Odchylenie standardowe: 8242.9216
+
+Najlepsza próba: 7
+Seed najlepszej próby: 6000141
+Iteracje najlepszej próby: 20000
