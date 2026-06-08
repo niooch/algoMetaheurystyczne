@@ -1,0 +1,205 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[polish]{babel}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{caption}
+\geometry{margin=2.2cm}
+\sisetup{
+  output-decimal-marker={,},
+  group-separator={\,},
+  group-minimum-digits=4
+}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  urlcolor=blue
+}
+
+\newcommand{\safeincludegraphics}[2][]{%
+  \IfFileExists{#2}{%
+    \includegraphics[#1]{#2}%
+  }{%
+    \fbox{%
+      \parbox[c][0.30\textheight][c]{0.92\linewidth}{%
+        \centering
+        Brak pliku wykresu:\\[0.5em]
+        \texttt{#2}%
+      }%
+    }%
+  }%
+}
+
+\title{Sprawozdanie z laboratorium 1.}
+\author{Jakub Kogut}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Cel ćwiczenia}
+Celem ćwiczenia było zbadanie działania heurystyki \emph{Local Search} dla euklidesowego
+problemu komiwojażera oraz porównanie trzech wariantów:
+\begin{enumerate}
+    \item pełnego przeszukiwania otoczenia typu \texttt{invert},
+    \item wersji przyspieszonej, w której w każdej iteracji rozpatruje się tylko losową próbkę
+    sąsiadów,
+    \item wariantu dla trzeciego roku, w którym rozwiązanie początkowe budowane jest na bazie
+    minimalnego drzewa rozpinającego i przeszukiwania DFS.
+\end{enumerate}
+
+Badane instancje pochodzą z kolekcji TSPLIB i odpowiadają pięciu dużym zbiorom:
+\texttt{mu1979} (Oman), \texttt{ca4663} (Kanada), \texttt{tz6117} (Tanzania),
+\texttt{eg7146} (Egipt) oraz \texttt{ei8246} (Irlandia).
+
+\section{Opis metody}
+\subsection*{Reprezentacja rozwiązania}
+Rozwiązanie TSP reprezentowane jest jako permutacja wierzchołków. Długość cyklu liczona jest
+zgodnie z regułą \texttt{EUC\_2D}, czyli przez zaokrąglenie odległości euklidesowej do najbliższej
+liczby całkowitej.
+
+\subsection*{Otoczenie \texttt{invert}}
+Podstawowym ruchem lokalnym jest \texttt{invert(i,j)}, czyli odwrócenie fragmentu permutacji
+od pozycji \(i\) do pozycji \(j\). W euklidesowym wariancie TSP ruch ten odpowiada klasycznej
+operacji 2-opt i bardzo często usuwa skrzyżowania krawędzi.
+
+\subsection*{Warianty eksperymentu}
+Dla każdej instancji porównano trzy procedury:
+\begin{enumerate}
+    \item \textbf{Exercise 1 / full invert}: lokalne przeszukiwanie z pełnym przeglądem
+    otoczenia \texttt{invert}.
+    \item \textbf{Exercise 2 / sampled invert}: w każdej iteracji oceniana jest jedynie losowa
+    próbka sąsiadów, a następnie wybierany jest najlepszy z nich.
+    \item \textbf{Exercise 3 / MST seeded}: budowane jest MST, losowany jest wierzchołek startowy,
+    tworzony jest cykl z kolejności DFS po drzewie, a następnie uruchamiane jest lokalne
+    przeszukiwanie.
+\end{enumerate}
+
+\section{Odpowiedzi na pytania z treści zadania}
+\subsection*{Dlaczego ruchy typu \texttt{invert} prowadzą do tras bez skrzyżowań?}
+W klasycznym euklidesowym TSP przecięcie dwóch krawędzi oznacza, że można zastosować ruch typu
+2-opt i zastąpić te krawędzie dwiema innymi, nieskrzyżowanymi. Na mocy nierówności trójkąta taka
+zamiana skraca trasę, więc lokalne optimum względem ruchu \texttt{invert} nie powinno zawierać
+skrzyżowań.
+
+\subsection*{Dlaczego zaokrąglenia mogą zaburzyć to rozumowanie?}
+W używanych danych długości są zaokrąglane do liczb całkowitych. Wtedy może się zdarzyć, że dwie
+konfiguracje geometrycznie różniące się długością po zaokrągleniu otrzymają ten sam koszt,
+a lokalna poprawa wynikająca z geometrii nie będzie już widoczna w funkcji celu.
+
+\subsection*{Po co używać MST w zadaniu 3?}
+Minimalne drzewo rozpinające dostarcza taniej struktury bazowej, która dobrze odwzorowuje
+geometrię rozmieszczenia punktów. Cykl otrzymany z DFS po MST zwykle jest wyraźnie lepszym
+punktem startowym niż losowa permutacja, więc lokalne przeszukiwanie może szybciej dojść
+do rozsądnego rozwiązania.
+
+\section{Wykresy porównawcze}
+Poniższe wykresy zbiorcze pokazują trzy najważniejsze miary jakości:
+\begin{enumerate}
+    \item średnią długość końcowego rozwiązania,
+    \item średnią liczbę zaakceptowanych kroków poprawy,
+    \item najlepszą uzyskaną długość cyklu.
+\end{enumerate}
+
+Osobno pokazano również wagę minimalnego drzewa rozpinającego, ponieważ w zadaniu 3 pełni ono
+rolę rozwiązania bazowego i stanowi dobry punkt odniesienia dla jakości inicjalizacji.
+
+\begin{figure}[H]
+    \centering
+    \safeincludegraphics[width=0.88\textwidth]{plots_lab1/summary/avg_final_length.png}
+    \caption{Porównanie średniej długości końcowego rozwiązania dla wszystkich instancji i trzech
+    wariantów heurystyki.}
+    \label{fig:avg-final}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \safeincludegraphics[width=0.88\textwidth]{plots_lab1/summary/best_length.png}
+    \caption{Porównanie najlepszej długości trasy uzyskanej dla każdej instancji.}
+    \label{fig:best-length}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \safeincludegraphics[width=0.88\textwidth]{plots_lab1/summary/mst_weight.png}
+    \caption{Waga minimalnego drzewa rozpinającego dla badanych instancji.}
+    \label{fig:mst-weight}
+\end{figure}
+
+\section{Wizualizacje najlepszych tras}
+Kolejne rysunki pokazują najlepsze rozwiązania zapisane dla każdej instancji. Każda plansza
+zawiera trzy podwykresy odpowiadające trzem wariantom algorytmu, więc można bezpośrednio
+porównać wpływ sposobu inicjalizacji i doboru otoczenia na geometrię otrzymanej trasy.
+
+\begin{figure}[H]
+    \centering
+    \safeincludegraphics[width=\textwidth]{plots_lab1/tours/mu1979_best_tours.png}
+    \caption{Najlepsze trasy dla instancji \texttt{mu1979} (Oman).}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \safeincludegraphics[width=\textwidth]{plots_lab1/tours/ca4663_best_tours.png}
+    \caption{Najlepsze trasy dla instancji \texttt{ca4663} (Kanada).}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \safeincludegraphics[width=\textwidth]{plots_lab1/tours/tz6117_best_tours.png}
+    \caption{Najlepsze trasy dla instancji \texttt{tz6117} (Tanzania).}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \safeincludegraphics[width=\textwidth]{plots_lab1/tours/eg7146_best_tours.png}
+    \caption{Najlepsze trasy dla instancji \texttt{eg7146} (Egipt).}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \safeincludegraphics[width=\textwidth]{plots_lab1/tours/ei8246_best_tours.png}
+    \caption{Najlepsze trasy dla instancji \texttt{ei8246} (Irlandia).}
+\end{figure}
+
+\section{Omówienie wyników}
+Najważniejszym wykresem porównawczym jest Rysunek~\ref{fig:avg-final}, ponieważ pokazuje on
+rzeczywistą jakość końcową heurystyk po uwzględnieniu przyjętych limitów obliczeniowych.
+Jeżeli dla danej instancji wariant MST-seeded osiąga niższą wartość niż oba warianty losowe,
+oznacza to, że lepsza inicjalizacja była ważniejsza niż liczba rozpatrywanych sąsiadów.
+Jeżeli natomiast pełny wariant \texttt{invert} wygrywa z wersją próbkowaną, to koszt dokładniejszego
+przeglądu otoczenia opłacił się jakościowo.
+
+Rysunek~\ref{fig:best-length} pokazuje, który wariant był w stanie znaleźć najlepsze rozwiązanie
+w całym eksperymencie dla danej instancji. W praktyce jest to zwykle najważniejsza obserwacja
+z punktu widzenia jakości heurystyki. Z kolei wykres wag MST pozwala oszacować, jak trudna jest sama
+struktura geometryczna danej instancji i czy rozwiązania z zadania 3 pozostają blisko sensownego
+punktu startowego.
+
+Wizualizacje tras są użyteczne z innego powodu niż same wykresy słupkowe. Pozwalają sprawdzić,
+czy końcowe rozwiązania zachowują spójną strukturę geometryczną, czy pojawiają się długie
+``przeskoki'' przez całą instancję oraz czy wariant MST-seeded rzeczywiście daje lepiej
+uporządkowaną trasę już na poziomie kształtu.
+
+\section{Wnioski}
+Porównanie trzech wariantów lokalnego przeszukiwania pokazuje dwa praktyczne trade-offy:
+\begin{enumerate}
+    \item lepsza inicjalizacja może być równie ważna jak dokładniejsze przeszukiwanie otoczenia,
+    \item przy bardzo dużych instancjach budżet obliczeniowy silnie wpływa na wynik końcowy,
+    więc porównanie algorytmów należy zawsze odnosić do tego samego limitu czasu lub liczby ruchów.
+\end{enumerate}
+
+Wariant z pełnym otoczeniem \texttt{invert} stanowi najmocniejszy punkt odniesienia jakościowego,
+wariant próbkowany jest kompromisem między czasem a jakością, a wariant MST-seeded pokazuje, że
+warto inwestować w lepsze rozwiązanie początkowe. Dalszym naturalnym krokiem byłoby zdjęcie części
+ograniczeń lub uczynienie ich parametrami eksperymentu, aby sprawdzić, który z wariantów skaluje się
+najlepiej przy rosnącym budżecie obliczeniowym.
+
+\end{document}

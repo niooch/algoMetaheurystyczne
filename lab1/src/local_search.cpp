@@ -19,7 +19,7 @@ struct InvertMove {
     bool found = false;
 };
 
-bool isValidInvertMove(int i, int j, int nodeCount) {
+bool isValidInvertMove(int i, int j, int nodeCount) { //✅✅✅✅✅✅✅✅✅✅✅
     return i >= 0 && j >= 0 && i < j && !(i == 0 && j == nodeCount - 1);
 }
 
