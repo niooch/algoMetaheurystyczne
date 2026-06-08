@@ -9,3 +9,5 @@ lab0/build/*
 lab1/data/*
 lab1/build/*
 data/
+*.csv
+ga_tsp
