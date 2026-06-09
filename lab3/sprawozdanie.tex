@@ -1,0 +1,455 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+
+\geometry{margin=2.5cm}
+
+\title{\textbf{Lista 3: Algorytm genetyczny dla problemu komiwojażera}}
+\author{Jakub Kogut}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Cel ćwiczenia}
+
+Celem ćwiczenia było zaprojektowanie, zaimplementowanie oraz eksperymentalne sprawdzenie algorytmu genetycznego dla problemu komiwojażera.
+
+Dla każdej instancji wykonano serię uruchomień algorytmu oraz porównano dwa operatory krzyżowania: OX oraz PMX.
+
+\section{Algorytmy populacyjne i algorytm genetyczny}
+
+Algorytmy populacyjne różnią się od algorytmów lokalnego przeszukiwania tym, że w każdym momencie działania przechowują nie jedno rozwiązanie, lecz cały zbiór rozwiązań. Zbiór ten nazywany jest populacją. Dzięki temu algorytm może równolegle utrzymywać kilka różnych kandydatów i nie jest ograniczony do ścieżki wyznaczonej przez pojedyncze rozwiązanie bieżące.
+
+Ogólny schemat działania algorytmu genetycznego można zapisać następująco:
+\begin{enumerate}
+    \item wygenerowanie populacji początkowej,
+    \item ocena osobników i selekcja rodziców,
+    \item krzyżowanie wybranych rodziców,
+    \item mutacja osobników potomnych,
+    \item sprawdzenie warunku stopu; jeśli nie został spełniony, powrót do selekcji.
+\end{enumerate}
+
+Pojedyncza iteracja algorytmu genetycznego nazywana jest pokoleniem. W każdym pokoleniu tworzona jest nowa populacja na podstawie osobników z populacji poprzedniej.
+
+\section{Reprezentacja rozwiązania dla TSP}
+
+W problemie komiwojażera rozwiązanie musi określać kolejność odwiedzania wszystkich wierzchołków. Dlatego naturalną reprezentacją osobnika jest permutacja numerów wierzchołków. Taka permutacja stanowi chromosom osobnika.
+
+W zastosowanej reprezentacji:
+\begin{itemize}
+    \item gen oznacza pojedynczy wierzchołek, czyli miasto odwiedzane przez komiwojażera,
+    \item locus oznacza pozycję genu w chromosomie, czyli miejsce danego miasta w trasie,
+    \item genotyp to cała permutacja wierzchołków,
+    \item fenotyp to wartość funkcji celu, czyli długość trasy wyznaczonej przez permutację.
+\end{itemize}
+
+Dla trasy zapisanej jako permutacja $p$ jej koszt obliczano jako:
+\[
+    f(p) = \sum_{i=0}^{n-1} d(p_i, p_{i+1}),
+\]
+gdzie $d(a,b)$ oznacza odległość pomiędzy wierzchołkami $a$ i $b$.
+
+Ważną cechą reprezentacji permutacyjnej jest to, że każdy wierzchołek musi pojawić się dokładnie raz. Oznacza to, że zwykłe krzyżowanie znane z chromosomów binarnych nie może zostać bezpośrednio zastosowane, ponieważ mogłoby doprowadzić do duplikatów miast lub pominięcia części wierzchołków. Z tego powodu zastosowano specjalne operatory krzyżowania przeznaczone dla permutacji.
+
+\section{Populacja początkowa}
+
+Pierwszym krokiem algorytmu było utworzenie populacji początkowej. Sposób inicjalizacji ma duże znaczenie dla jakości działania algorytmu genetycznego. Jeśli populacja początkowa jest zbyt jednorodna, algorytm może szybko utracić różnorodność i przedwcześnie zbiec do słabego rozwiązania. Jeśli natomiast populacja jest całkowicie losowa, początkowe rozwiązania w dużych instancjach TSP są bardzo słabe i algorytm potrzebuje dużo czasu, aby dojść do rozsądnych tras.
+
+W implementacji zastosowano podejście mieszane. Część osobników generowano losowo jako losowe permutacje wierzchołków. Zapewniało to różnorodność populacji. Dodatkowo część populacji tworzono przy użyciu heurystyki najbliższego sąsiada. W tej heurystyce wybierany jest wierzchołek początkowy, a następnie do trasy dołączany jest najbliższy jeszcze nieodwiedzony wierzchołek. 
+
+\section{Ewaluacja i selekcja}
+
+Każdy osobnik był oceniany za pomocą funkcji celu, czyli długości odpowiadającej mu trasy. Im krótsza trasa, tym lepiej przystosowany osobnik. Po ocenie populacji wykonywano selekcję rodziców, którzy następnie brali udział w krzyżowaniu.
+
+W implementacji zastosowałem selekcję turniejową. Polega ona na losowym wybraniu $k$ osobników z populacji, a następnie wskazaniu najlepszego z nich jako rodzica. Parametr $k$ określa siłę presji selekcyjnej. Większa wartość $k$ zwiększa prawdopodobieństwo wyboru bardzo dobrych osobników, ale może również przyspieszyć utratę różnorodności populacji. Mniejsza wartość $k$ daje większe szanse słabszym osobnikom i pozwala dłużej utrzymywać różnorodność.
+
+\section{Krzyżowanie}
+
+Krzyżowanie jest operatorem tworzącym osobniki potomne na podstawie dwóch rodziców. W przypadku problemu TSP operator krzyżowania musi zapewniać, że potomek również będzie poprawną permutacją wierzchołków. W przeciwnym razie otrzymana trasa mogłaby zawierać powtórzone miasta albo pomijać część z nich.
+
+W eksperymentach porównano dwa operatory krzyżowania przeznaczone dla reprezentacji permutacyjnej: OX oraz PMX.
+
+\subsection{Order Crossover -- OX}
+
+Operator OX zachowuje spójny fragment trasy pierwszego rodzica. Następnie pozostałe pozycje potomka są uzupełniane genami drugiego rodzica w takiej kolejności, w jakiej występują one w jego chromosomie, z pominięciem genów już przepisanych. Operator ten dobrze nadaje się do TSP, ponieważ zachowuje częściowy porządek odwiedzania miast.
+
+\subsection{Partially Mapped Crossover -- PMX}
+
+Operator PMX również przepisuje fragment pierwszego rodzica, ale dodatkowo tworzy odwzorowanie pomiędzy genami z odpowiadających sobie fragmentów obu rodziców. Odwzorowanie to służy do usuwania konfliktów i zapewnienia, że każdy gen pojawi się dokładnie raz.
+
+PMX zachowuje część pozycji genów i w większym stopniu bazuje na mapowaniu elementów między rodzicami. W praktyce OX i PMX mogą dawać podobne wyniki, ale ich działanie jest inne: OX mocniej zachowuje kolejność, natomiast PMX mocniej zachowuje zależności pozycyjne.
+
+W standardowym modelu z dwóch rodziców tworzono dwoje dzieci. Drugie dziecko powstawało przez zastosowanie tego samego operatora, ale z zamienioną kolejnością rodziców.
+
+\section{Mutacja}
+
+Mutacja jest losowym zaburzeniem osobnika. Jej zadaniem jest zwiększanie różnorodności populacji oraz przeciwdziałanie przedwczesnej zbieżności. W problemie TSP mutacja również musi zachowywać poprawność permutacji.
+
+W implementacji mutację wykonywano przez odwrócenie losowego fragmentu trasy. Jest to operator zgodny z ruchem 2-opt znanym z lokalnego przeszukiwania. Taka mutacja jest bardziej naturalna dla problemu TSP niż prosta zamiana dwóch miast, ponieważ może usuwać niekorzystne fragmenty trasy i zmieniać kolejność większego podciągu wierzchołków.
+
+\section{Model wyspowy}
+
+W implementacji zastosowano model wyspowy. Zamiast jednej dużej populacji utrzymywano kilka mniejszych populacji, nazywanych wyspami. Każda wyspa ewoluowała przez pewien czas niezależnie. Co określoną liczbę pokoleń wykonywano migrację, czyli przeniesienie części najlepszych osobników z jednej wyspy na inną.
+
+Model wyspowy pomaga utrzymywać różnorodność. W klasycznym algorytmie genetycznym cała populacja może szybko stać się podobna do kilku najlepszych osobników. W modelu wyspowym poszczególne populacje mogą rozwijać się w różnych kierunkach. Migracja pozwala natomiast przekazywać dobre cechy między wyspami bez natychmiastowego ujednolicenia całej populacji.
+
+Dodatkową zaletą modelu wyspowego jest to, że naturalnie nadaje się on do zrównoleglenia. Poszczególne wyspy lub niezależne uruchomienia algorytmu mogą być liczone równolegle.
+
+\section{Warunek stopu}
+
+Warunkiem stopu była maksymalna liczba pokoleń albo brak poprawy najlepszego rozwiązania przez określoną liczbę kolejnych pokoleń. Takie podejście jest analogiczne do warunków stosowanych w innych metaheurystykach.
+
+\section{Parametry eksperymentów}
+
+W eksperymentach wykorzystano algorytm genetyczny z selekcją turniejową, elityzmem, operatorem mutacji przez odwrócenie fragmentu trasy oraz operatorami krzyżowania OX i PMX. Dla badanych instancji wykonano po 100 uruchomień dla każdego operatora krzyżowania. Wyniki zestawiono na podstawie najlepszego, średniego i najgorszego kosztu uzyskanego w próbach.
+
+\subsection{Wyniki liczbowe}
+
+\begin{table}[H]
+    \centering
+    \caption{Wyniki algorytmu genetycznego dla 100 wykonań. Kolumna \% oznacza stosunek najlepszego uzyskanego wyniku do wartości Best Bound.}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{llrrrrrr}
+        \toprule
+        Instancja & Krzyżowanie & Liczba prób & Najlepszy koszt & Średni koszt & Najgorszy koszt &  Best Bound & \% \\
+        \midrule
+        \texttt{qa194.tsp} & OX & 100 & 9805 & 10326.19 & 10927 & 9352 & 104.84\% \\
+        \texttt{qa194.tsp} & PMX & 100 & 9878 & 10241.50 & 10566 & 9352 & 105.62\% \\
+        \addlinespace
+        \texttt{ca4663.tsp} & OX & 100 & 1613931 & 1628039.18 & 1653271 & 1290319 & 125.08\% \\
+        \texttt{ca4663.tsp} & PMX & 100 & 1614114 & 1628045.74 & 1653271 & 290319 & 125.09\% \\
+        \addlinespace
+        \texttt{eg7146.tsp} & OX & 100 & 214727 & 217557.47 & 220298 & 172387 & 124.56\% \\
+        \texttt{eg7146.tsp} & PMX & 100 & 214727 & 217558.25 & 220298 & 172387 & 124.56\% \\
+        \addlinespace
+        \texttt{ar9152.tsp} & OX & 100 & 1036621 & 1058756.83 & 1074629 &  837479 & 123.78\% \\
+        \texttt{ar9152.tsp} & PMX & 100 & 1036621 & 1058756.83 & 1074629 & 837479 & 123.78\% \\
+        \addlinespace
+        \texttt{it16862.tsp} & OX & 100 & 695434 & 703565.95 & 711074 & 557315 & 124.78\% \\
+        \texttt{it16862.tsp} & PMX & 100 & 695434 & 703565.95 & 711074 & 557315 & 124.78\% \\
+        \bottomrule
+    \end{tabular}%
+    }
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{Porównanie operatorów krzyżowania na podstawie średniego wyniku.}
+    \begin{tabular}{lrrr}
+        \toprule
+        Instancja & Średni koszt OX & Średni koszt PMX \\
+        \midrule
+        \texttt{qa194.tsp} & 10326.19 & 10241.50 \\
+        \texttt{ca4663.tsp} & 1628039.18 & 1628045.74 \\
+        \texttt{eg7146.tsp} & 217557.47 & 217558.25\\
+        \texttt{ar9152.tsp} & 1058756.83 & 1058756.83 \\
+        \texttt{it16862.tsp} & 703565.95 & 703565.95 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Wykresy}
+
+\subsection{Wykresy dla instancji \texttt{qa194.tsp}}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_history_qa194_ox.png}
+        \caption{OX}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_history_qa194_pmx.png}
+        \caption{PMX}
+    \end{subfigure}
+    \caption{Zmiana najlepszego kosztu w kolejnych pokoleniach dla instancji \texttt{qa194.tsp}.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_runs_histogram_qa194_ox.png}
+        \caption{OX}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_runs_histogram_qa194_pmx.png}
+        \caption{PMX}
+    \end{subfigure}
+    \caption{Rozkład wyników uzyskanych w próbach dla instancji \texttt{qa194.tsp}.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_best_route_qa194_ox.png}
+        \caption{OX}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_best_route_qa194_pmx.png}
+        \caption{PMX}
+    \end{subfigure}
+    \caption{Najlepsze trasy znalezione przez algorytm genetyczny dla instancji \texttt{qa194.tsp}.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_crossover_boxplot_qa194.png}
+        \caption{Wykres pudełkowy}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_crossover_histogram_qa194.png}
+        \caption{Histogram}
+    \end{subfigure}
+    \caption{Porównanie operatorów krzyżowania OX i PMX dla instancji \texttt{qa194.tsp}.}
+\end{figure}
+
+\subsection{Wykresy dla instancji \texttt{ca4663.tsp}}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_runs_histogram_ca4663_ox.png}
+        \caption{OX}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_runs_histogram_ca4663_pmx.png}
+        \caption{PMX}
+    \end{subfigure}
+    \caption{Rozkład wyników uzyskanych w próbach dla instancji \texttt{ca4663.tsp}.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_best_route_ca4663_ox.png}
+        \caption{OX}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_best_route_ca4663_pmx.png}
+        \caption{PMX}
+    \end{subfigure}
+    \caption{Najlepsze trasy znalezione przez algorytm genetyczny dla instancji \texttt{ca4663.tsp}.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_crossover_boxplot_ca4663.png}
+        \caption{Wykres pudełkowy}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_crossover_histogram_ca4663.png}
+        \caption{Histogram}
+    \end{subfigure}
+    \caption{Porównanie operatorów krzyżowania OX i PMX dla instancji \texttt{ca4663.tsp}.}
+\end{figure}
+
+\subsection{Wykresy dla instancji \texttt{eg7146.tsp}}
+
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_runs_histogram_eg7146_ox.png}
+        \caption{OX}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_runs_histogram_eg7146_pmx.png}
+        \caption{PMX}
+    \end{subfigure}
+    \caption{Rozkład wyników uzyskanych w próbach dla instancji \texttt{eg7146.tsp}.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_best_route_eg7146_ox.png}
+        \caption{OX}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_best_route_eg7146_pmx.png}
+        \caption{PMX}
+    \end{subfigure}
+    \caption{Najlepsze trasy znalezione przez algorytm genetyczny dla instancji \texttt{eg7146.tsp}.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_crossover_boxplot_eg7146.png}
+        \caption{Wykres pudełkowy}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_crossover_histogram_eg7146.png}
+        \caption{Histogram}
+    \end{subfigure}
+    \caption{Porównanie operatorów krzyżowania OX i PMX dla instancji \texttt{eg7146.tsp}.}
+\end{figure}
+
+\subsection{Wykresy dla instancji \texttt{ar9152.tsp}}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_runs_histogram_ar9152_ox.png}
+        \caption{OX}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_runs_histogram_ar9152_pmx.png}
+        \caption{PMX}
+    \end{subfigure}
+    \caption{Rozkład wyników uzyskanych w próbach dla instancji \texttt{ar9152.tsp}.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_best_route_ar9152_ox.png}
+        \caption{OX}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_best_route_ar9152_pmx.png}
+        \caption{PMX}
+    \end{subfigure}
+    \caption{Najlepsze trasy znalezione przez algorytm genetyczny dla instancji \texttt{ar9152.tsp}.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_crossover_boxplot_ar9152.png}
+        \caption{Wykres pudełkowy}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_crossover_histogram_ar9152.png}
+        \caption{Histogram}
+    \end{subfigure}
+    \caption{Porównanie operatorów krzyżowania OX i PMX dla instancji \texttt{ar9152.tsp}.}
+\end{figure}
+
+\subsection{Wykresy dla instancji \texttt{it16862.tsp}}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_runs_histogram_it16862_ox.png}
+        \caption{OX}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_runs_histogram_it16862_pmx.png}
+        \caption{PMX}
+    \end{subfigure}
+    \caption{Rozkład wyników uzyskanych w próbach dla instancji \texttt{it16862.tsp}.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_best_route_it16862_ox.png}
+        \caption{OX}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_best_route_it16862_pmx.png}
+        \caption{PMX}
+    \end{subfigure}
+    \caption{Najlepsze trasy znalezione przez algorytm genetyczny dla instancji \texttt{it16862.tsp}.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_crossover_boxplot_it16862.png}
+        \caption{Wykres pudełkowy}
+    \end{subfigure}
+    \begin{subfigure}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{ga_crossover_histogram_it16862.png}
+        \caption{Histogram}
+    \end{subfigure}
+    \caption{Porównanie operatorów krzyżowania OX i PMX dla instancji \texttt{it16862.tsp}.}
+\end{figure}
+
+
+\section{Porównanie z innymi metodami heurystycznymi}
+
+Algorytm genetyczny różni się od metod lokalnego przeszukiwania przede wszystkim tym, że utrzymuje populację rozwiązań. Local Search, symulowane wyżarzanie oraz Tabu Search zwykle operują na jednym rozwiązaniu bieżącym. W każdej iteracji przechodzą do rozwiązania sąsiedniego, według określonej reguły akceptacji. Algorytm genetyczny tworzy natomiast całe pokolenia osobników, łącząc informacje pochodzące od różnych rozwiązań.
+
+\subsection{Porównanie z Local Search}
+
+Local Search jest prostą metodą, w której z bieżącego rozwiązania wybierane jest rozwiązanie sąsiednie, najczęściej tylko wtedy, gdy poprawia wynik. Zaletą tej metody jest prostota i szybkość. Wadą jest łatwe zatrzymywanie się w minimum lokalnym. Algorytm genetyczny przeciwdziała temu przez utrzymywanie wielu rozwiązań jednocześnie oraz przez mutację i krzyżowanie, które mogą przenosić przeszukiwanie do innych obszarów przestrzeni rozwiązań.
+
+\subsection{Porównanie z symulowanym wyżarzaniem}
+
+Symulowane wyżarzanie również pozwala opuszczać minima lokalne, ponieważ z pewnym prawdopodobieństwem akceptuje rozwiązania gorsze. Mechanizm ten zależy od temperatury, która stopniowo maleje. Algorytm genetyczny nie używa temperatury. Zamiast tego eksploracja wynika z różnorodności populacji, mutacji oraz krzyżowania osobników. W SA przebieg jest pojedynczą ścieżką w przestrzeni rozwiązań, natomiast w GA wiele rozwiązań rozwija się równolegle.
+
+\subsection{Porównanie z Tabu Search}
+
+Tabu Search pozwala wychodzić z minimów lokalnych przez akceptowanie najlepszego dopuszczalnego ruchu, nawet jeśli pogarsza rozwiązanie. Lista tabu zapobiega szybkiemu powrotowi do ostatnio odwiedzonych rozwiązań lub ruchów. W algorytmie genetycznym nie ma listy tabu. Zapobieganie stagnacji odbywa się przez różnorodność populacji, mutację, model wyspowy i migracje. Tabu Search zwykle intensywnie przeszukuje sąsiedztwo jednego rozwiązania, natomiast GA bardziej rozprasza wysiłek obliczeniowy pomiędzy wiele kandydatów.
+
+\begin{table}[H]
+\centering
+\caption{Ogólne porównanie wybranych metaheurystyk.}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+Metoda & Liczba rozwiązań & Mechanizm opuszczania minimów lokalnych & Główne parametry \\
+\midrule
+Local Search & jedno & zwykle brak lub restart & sąsiedztwo, warunek stopu \\
+Symulowane wyżarzanie & jedno & akceptacja gorszych rozwiązań zależna od temperatury & temperatura, chłodzenie, liczba prób \\
+Tabu Search & jedno & lista tabu i ruchy pogarszające & długość tabu, sąsiedztwo, aspiracja \\
+Algorytm genetyczny & populacja & krzyżowanie, mutacja, selekcja, różnorodność populacji & populacja, selekcja, mutacja, krzyżowanie \\
+Algorytm wyspowy GA & wiele populacji & migracje między populacjami & liczba wysp, interwał migracji, liczba migrantów \\
+Algorytm memetyczny & populacja + lokalna poprawa & ewolucja połączona z lokalnym ulepszaniem & parametry GA oraz intensywność local search \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\end{document}

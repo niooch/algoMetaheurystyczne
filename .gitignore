@@ -11,3 +11,7 @@ lab1/build/*
 data/
 *.csv
 ga_tsp
+ga_tsp_better
+*.png
+*.txt
+*.toc
